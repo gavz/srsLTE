@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef RLC_H
-#define RLC_H
+#ifndef SRSLTE_RLC_H
+#define SRSLTE_RLC_H
 
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
@@ -55,9 +55,9 @@ public:
   void init(srsue::pdcp_interface_rlc *pdcp_,
             srsue::rrc_interface_rlc  *rrc_,
             srsue::ue_interface       *ue_,
-            log        *rlc_log_, 
-            mac_interface_timers *mac_timers_,
-            uint32_t                  lcid_);
+            log                       *rlc_log_,
+            mac_interface_timers      *mac_timers_,
+            uint32_t                   lcid_);
   void stop();
 
   void get_metrics(rlc_metrics_t &m);
@@ -105,4 +105,4 @@ private:
 } // namespace srsue
 
 
-#endif // RLC_H
+#endif // SRSLTE_RLC_H

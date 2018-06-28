@@ -26,7 +26,7 @@
 
 
 #include <sstream>
-#include "upper/usim.h"
+#include "srsue/hdr/upper/usim.h"
 #include "srslte/common/bcd_helpers.h"
 
 using namespace srslte;
@@ -49,15 +49,8 @@ void usim::init(usim_args_t *args, srslte::log *usim_log_)
   if(32 == args->op.length()) {
     str_to_hex(args->op, op);
   } else {
-    usim_log->error("Invalid length for OP: %d should be %d", args->op.length(), 32);
-    usim_log->console("Invalid length for OP: %d should be %d", args->op.length(), 32);
-  }
-
-  if(4 == args->amf.length()) {
-    str_to_hex(args->amf, amf);
-  } else {
-    usim_log->error("Invalid length for AMF: %d should be %d", args->amf.length(), 4);
-    usim_log->console("Invalid length for AMF: %d should be %d", args->amf.length(), 4);
+    usim_log->error("Invalid length for OP: %zu should be %d", args->op.length(), 32);
+    usim_log->console("Invalid length for OP: %zu should be %d", args->op.length(), 32);
   }
 
   if(15 == args->imsi.length()) {
@@ -68,8 +61,8 @@ void usim::init(usim_args_t *args, srslte::log *usim_log_)
       imsi += imsi_c[i] - '0';
     }
   } else {
-    usim_log->error("Invalid length for ISMI: %d should be %d", args->imsi.length(), 15);
-    usim_log->console("Invalid length for IMSI: %d should be %d", args->imsi.length(), 15);
+    usim_log->error("Invalid length for ISMI: %zu should be %d", args->imsi.length(), 15);
+    usim_log->console("Invalid length for IMSI: %zu should be %d", args->imsi.length(), 15);
   }
 
   if(15 == args->imei.length()) {
@@ -80,15 +73,15 @@ void usim::init(usim_args_t *args, srslte::log *usim_log_)
       imei += imei_c[i] - '0';
     }
   } else {
-    usim_log->error("Invalid length for IMEI: %d should be %d", args->imei.length(), 15);
-    usim_log->console("Invalid length for IMEI: %d should be %d", args->imei.length(), 15);
+    usim_log->error("Invalid length for IMEI: %zu should be %d", args->imei.length(), 15);
+    usim_log->console("Invalid length for IMEI: %zu should be %d", args->imei.length(), 15);
   }
 
   if(32 == args->k.length()) {
     str_to_hex(args->k, k);
   } else {
-    usim_log->error("Invalid length for K: %d should be %d", args->k.length(), 32);
-    usim_log->console("Invalid length for K: %d should be %d", args->k.length(), 32);
+    usim_log->error("Invalid length for K: %zu should be %d", args->k.length(), 32);
+    usim_log->console("Invalid length for K: %zu should be %d", args->k.length(), 32);
   }
 
   auth_algo = auth_algo_milenage;
@@ -356,6 +349,11 @@ void usim::gen_auth_res_milenage( uint8_t  *rand,
   {
     sqn[i] = autn_enb[i] ^ ak[i];
   }
+  // Extract AMF from autn
+  for(int i=0;i<2;i++)
+  {
+    amf[i]=autn_enb[6+i];
+  }
 
   // Generate MAC
   security_milenage_f1( k,
@@ -430,6 +428,10 @@ void usim::gen_auth_res_xor(uint8_t  *rand,
   // Extract sqn from autn
   for(i=0;i<6;i++) {
     sqn[i] = autn_enb[i] ^ ak[i];
+  }
+  // Extract AMF from autn
+  for(int i=0;i<2;i++){
+      amf[i]=autn_enb[6+i];
   }
 
   // Generate cdout

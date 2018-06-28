@@ -41,8 +41,6 @@ include(SRSLTEVersion) #sets version information
 include(SRSLTEPackage) #setup cpack
 
 include(CTest)
-set(CTEST_MEMORYCHECK_COMMAND valgrind)
-set(CTEST_MEMORYCHECK_COMMAND_OPTIONS "--trace-children=yes --leak-check=full" )
 
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/CTestCustom.cmake.in"
@@ -71,9 +69,11 @@ option(DISABLE_SIMD    "disable simd instructions"                OFF)
 
 option(ENABLE_GUI      "Enable GUI (using srsGUI)"                ON)
 option(ENABLE_BLADERF  "Enable BladeRF"                           ON)
+option(ENABLE_SOAPYSDR "Enable SoapySDR"                          ON)
 
 option(BUILD_STATIC    "Attempt to statically link external deps" OFF)
 option(RPATH           "Enable RPATH"                             OFF)
+option(ENABLE_ASAN     "Enable gcc address sanitizer"             OFF)
 
 option(USE_LTE_RATES   "Use standard LTE sampling rates"          OFF)
 
@@ -149,11 +149,13 @@ if(ENABLE_BLADERF)
 endif(ENABLE_BLADERF)
 
 # Soapy
-find_package(SoapySDR)
-if(SOAPYSDR_FOUND)
-  include_directories(${SOAPYSDR_INCLUDE_DIRS})
-  link_directories(${SOAPYSDR_LIBRARY_DIRS})
-endif(SOAPYSDR_FOUND)
+if(ENABLE_SOAPYSDR)
+  find_package(SoapySDR)
+  if(SOAPYSDR_FOUND)
+    include_directories(${SOAPYSDR_INCLUDE_DIRS})
+    link_directories(${SOAPYSDR_LIBRARY_DIRS})
+  endif(SOAPYSDR_FOUND)
+endif(ENABLE_SOAPYSDR)
 
 if(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
   set(RF_FOUND TRUE CACHE INTERNAL "RF frontend found")
@@ -170,7 +172,6 @@ if(ENABLE_SRSUE OR ENABLE_SRSENB OR ENABLE_SRSEPC)
 
   set(BOOST_REQUIRED_COMPONENTS
       program_options
-      system
   )
   if(UNIX AND EXISTS "/usr/lib64")
       list(APPEND BOOST_LIBRARYDIR "/usr/lib64") #fedora 64-bit fix
@@ -228,13 +229,7 @@ macro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE flag have)
 endmacro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=${GCC_ARCH} -Wall -Wno-comment -Wno-reorder -Wno-unused-but-set-variable -Wno-unused-variable -std=c++03")
-
-  if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -DDEBUG_MODE")
-  else(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
-  endif(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=${GCC_ARCH} -Wall -Wno-comment -Wno-reorder -Wno-unused-but-set-variable -Wno-unused-variable -Wformat -Wtype-limits -std=c++03")
 
   find_package(SSE)
   if (HAVE_AVX2)
@@ -251,12 +246,19 @@ endif(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clan
 ADD_CXX_COMPILER_FLAG_IF_AVAILABLE("-Werror=incompatible-pointer-types" HAVE_ERROR_INCOMPATIBLE)
 
 if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=${GCC_ARCH} -Wall -Wno-comment -Wno-write-strings -Wno-format-extra-args -Winline -Wno-unused-result -Wno-format -std=c99 -D_GNU_SOURCE")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=${GCC_ARCH} -Wall -Wno-comment -Wno-write-strings -Winline -Wno-unused-result -Wformat -Wtype-limits -std=c99 -D_GNU_SOURCE")
 
   if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -DDEBUG_MODE")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb -O0 -DDEBUG_MODE -DBUILD_TYPE_DEBUG")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb -O0 -DDEBUG_MODE -DBUILD_TYPE_DEBUG")
   else(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
+    if(${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo")
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb -DBUILD_TYPE_RELWITHDEBINFO")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb -DBUILD_TYPE_RELWITHDEBINFO")
+    else(${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo")
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -DBUILD_TYPE_RELEASE")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DBUILD_TYPE_RELEASE")
+    endif(${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo")
   endif(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 
   if (USE_LTE_RATES)
@@ -303,6 +305,10 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
   if(NOT WIN32)
       ADD_CXX_COMPILER_FLAG_IF_AVAILABLE(-fvisibility=hidden HAVE_VISIBILITY_HIDDEN)
   endif(NOT WIN32)
+ if (ENABLE_ASAN)
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address")
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+ endif (ENABLE_ASAN)
 endif(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -371,7 +377,7 @@ if(RF_FOUND)
     message(STATUS "Building with srsENB")
     add_subdirectory(srsenb)
   else(ENABLE_SRSENB)
-    message(STATUS "srsUE build disabled")
+    message(STATUS "srsENB build disabled")
   endif(ENABLE_SRSENB)
 else(RF_FOUND)
   message(STATUS "srsUE and srsENB builds disabled due to missing RF driver")

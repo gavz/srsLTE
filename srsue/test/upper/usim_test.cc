@@ -25,7 +25,7 @@
  */
 
 #include <iostream>
-#include "upper/usim.h"
+#include "srsue/hdr/upper/usim.h"
 #include "srslte/common/log_filter.h"
 #include <assert.h>
 
@@ -74,7 +74,6 @@ int main(int argc, char **argv)
 
   usim_args_t args;
   args.algo = "milenage";
-  args.amf = "8000";
   args.imei = "35609204079301";
   args.imsi = "208930000000001";
   args.k = "8BAF473F2F8FD09487CCCBD7097C6862";

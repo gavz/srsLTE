@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef RLC_AM_H
-#define RLC_AM_H
+#ifndef SRSLTE_RLC_AM_H
+#define SRSLTE_RLC_AM_H
 
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
@@ -40,7 +40,7 @@
 
 namespace srslte {
 
-
+#undef RLC_AM_BUFFER_DEBUG
 
 struct rlc_amd_rx_pdu_t{
   rlc_amd_pdu_header_t  header;
@@ -71,6 +71,7 @@ class rlc_am
 {
 public:
   rlc_am();
+  ~rlc_am();
   void init(log          *rlc_entity_log_,
             uint32_t              lcid_,
             srsue::pdcp_interface_rlc   *pdcp_,
@@ -189,6 +190,7 @@ private:
   bool inside_tx_window(uint16_t sn);
   bool inside_rx_window(uint16_t sn);
   void debug_state();
+  void print_rx_segments();
 
   bool add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rlc_amd_rx_pdu_t *segment);
   int  required_buffer_size(rlc_amd_retx_t retx);
@@ -218,7 +220,7 @@ std::string rlc_am_to_string(rlc_status_pdu_t *status);
 bool        rlc_am_start_aligned(uint8_t fi);
 bool        rlc_am_end_aligned(uint8_t fi);
 
-} // namespace srsue
+} // namespace srslte
 
 
-#endif // RLC_AM_H
+#endif // SRSLTE_RLC_AM_H

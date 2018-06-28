@@ -35,7 +35,10 @@ namespace srslte{
 
 logger_file::logger_file()
   :inited(false)
+  ,logfile(NULL)
   ,not_done(true)
+  ,cur_length(0)
+  ,max_length(0)
 {}
 
 logger_file::~logger_file() {
@@ -44,15 +47,17 @@ logger_file::~logger_file() {
   if(inited) {
     wait_thread_finish();
     flush();
-    fclose(logfile);
+    if (logfile) {
+      fclose(logfile);
+    }
   }
 }
 
-void logger_file::init(std::string file, int max_length) {
+void logger_file::init(std::string file, int max_length_) {
   pthread_mutex_init(&mutex, NULL); 
   pthread_cond_init(&not_empty, NULL);
   pthread_cond_init(&not_full, NULL);
-  this->max_length = max_length*1024;
+  max_length = (int64_t)max_length_*1024;
   name_idx = 0;
   filename = file;
   logfile = fopen(filename.c_str(), "w");

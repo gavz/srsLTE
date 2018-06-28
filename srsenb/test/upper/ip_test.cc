@@ -1,3 +1,29 @@
+/**
+ *
+ * \section COPYRIGHT
+ *
+ * Copyright 2013-2017 Software Radio Systems Limited
+ *
+ * \section LICENSE
+ *
+ * This file is part of srsLTE.
+ *
+ * srsUE is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ *
+ * srsUE is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * A copy of the GNU Affero General Public License can be found in
+ * the LICENSE file in the top-level directory of this distribution
+ * and at http://www.gnu.org/licenses/.
+ *
+ */
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -10,8 +36,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "mac/mac.h"
-#include "phy/phy.h"
+#include "srsenb/hdr/mac/mac.h"
+#include "srsenb/hdr/phy/phy.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/common/common.h"
@@ -591,7 +617,7 @@ int main(int argc, char *argv[])
 int setup_if_addr(char *ip_addr)
 {
   char *dev = (char*) "tun_srsenb";
-  int sock = 0;
+  int sock = -1;
 
   // Construct the TUN device
   int tun_fd = open("/dev/net/tun", O_RDWR);
@@ -642,10 +668,16 @@ int setup_if_addr(char *ip_addr)
     perror("ioctl");
     goto clean_exit;
   }
+  shutdown(sock, SHUT_RDWR);
 
   return(tun_fd);
 
 clean_exit:
-  close(tun_fd);
+  if (sock != -1) {
+    shutdown(sock, SHUT_RDWR);
+  }
+  if (tun_fd != -1) {
+    close(tun_fd);
+  }
   return SRSLTE_ERROR;
 }

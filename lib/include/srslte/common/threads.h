@@ -24,6 +24,7 @@
  *
  */
 
+
 #include <pthread.h>
 #include <stdint.h>
 #include <sys/timerfd.h>
@@ -46,12 +47,15 @@
 #ifdef __cplusplus
 }
   
-#ifndef THREADS_
-#define THREADS_   
+#ifndef SRSLTE_THREADS_H
+#define SRSLTE_THREADS_H  
   
 class thread
 {
-public: 
+public:
+  thread() {
+    _thread = 0;
+  }
   bool start(int prio = -1) {
     return threads_new_rt_prio(&_thread, thread_function_entry, this, prio);    
   }
@@ -156,7 +160,7 @@ private:
 
 
 
-#endif // THREADS_
+#endif // SRSLTE_THREADS_H
 
 #endif // __cplusplus
 

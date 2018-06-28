@@ -355,7 +355,7 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
     }
     
     if (q->normalize_en) {
-      float norm_factor = (float) 0.8*q->cell.nof_prb/5;
+      float norm_factor = (float) q->cell.nof_prb/15/10;
       srslte_vec_sc_prod_cfc(output_signal, norm_factor, output_signal, SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
     }
     ret = SRSLTE_SUCCESS; 
@@ -626,13 +626,12 @@ int srslte_ue_ul_sr_send_tti(uint32_t I_sr, uint32_t current_tti) {
   } else {
     return SRSLTE_ERROR;
   }
-  uint32_t sfn = current_tti/10;
-  uint32_t subf = current_tti%10; 
-  if ((10*sfn+subf-sr_N_offset)%sr_periodicity==0) {
-    return 1; 
-  } else {
-    return SRSLTE_SUCCESS;
+  if (current_tti >= sr_N_offset) {
+    if ((current_tti - sr_N_offset) % sr_periodicity == 0) {
+      return 1;
+    }
   }
+  return SRSLTE_SUCCESS;
 }
 
 
